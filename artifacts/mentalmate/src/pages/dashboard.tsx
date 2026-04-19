@@ -1,30 +1,71 @@
-import { useGetWellnessDashboard, useGetRecentActivity } from "@workspace/api-client-react";
+import { useState } from "react";
+import { useGetWellnessDashboard, useGetRecentActivity, useUpdateWellnessData, getGetWellnessDashboardQueryKey } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, Heart, ArrowUpRight, Flame, MessageCircle, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
+import { Activity, Heart, ArrowUpRight, Flame, MessageCircle, Sparkles, Pencil, Check, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { useUser } from "@clerk/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DashboardPage() {
   const { user } = useUser();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { data: dashboard, isLoading: dashboardLoading } = useGetWellnessDashboard();
   const { data: activity, isLoading: activityLoading } = useGetRecentActivity();
+  const updateWellness = useUpdateWellnessData();
+
+  const [editing, setEditing] = useState(false);
+  const [stressLevel, setStressLevel] = useState<number>(5);
+  const [mentalHealthScore, setMentalHealthScore] = useState<number>(70);
+  const [bloodPressureSystolic, setBloodPressureSystolic] = useState<number>(120);
+  const [bloodPressureDiastolic, setBloodPressureDiastolic] = useState<number>(80);
+
+  const openEdit = () => {
+    setStressLevel(dashboard?.stressLevel ?? 5);
+    setMentalHealthScore(dashboard?.mentalHealthScore ?? 70);
+    setBloodPressureSystolic(dashboard?.bloodPressureSystolic ?? 120);
+    setBloodPressureDiastolic(dashboard?.bloodPressureDiastolic ?? 80);
+    setEditing(true);
+  };
+
+  const handleSave = () => {
+    updateWellness.mutate({
+      data: {
+        stressLevel,
+        mentalHealthScore,
+        bloodPressureSystolic,
+        bloodPressureDiastolic,
+      }
+    }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetWellnessDashboardQueryKey() });
+        setEditing(false);
+        toast({ title: "Wellness updated", description: "Your dashboard now reflects the latest values." });
+      },
+      onError: () => {
+        toast({ title: "Update failed", description: "Could not save your wellness data. Please try again.", variant: "destructive" });
+      }
+    });
+  };
 
   return (
     <AppLayout>
       <div className="space-y-8">
         <header className="space-y-2">
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-3xl font-semibold tracking-tight"
           >
             Good to see you, {user?.firstName || "friend"}.
           </motion.h1>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -69,6 +110,129 @@ export default function DashboardPage() {
           />
         </div>
 
+        {/* Wellness Update Panel */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <Card className="rounded-3xl border-border/50 shadow-sm bg-card overflow-hidden">
+            <CardHeader className="bg-muted/10 border-b border-border/50 pb-4 flex flex-row items-center justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg font-medium">
+                  <Activity className="w-5 h-5 text-secondary" />
+                  Update Wellness Data
+                </CardTitle>
+                <CardDescription>Log your current stress, mood score, and blood pressure</CardDescription>
+              </div>
+              {!editing && (
+                <Button variant="outline" size="sm" onClick={openEdit} className="rounded-full h-8 px-4 gap-2 shrink-0">
+                  <Pencil className="w-3.5 h-3.5" />
+                  Update
+                </Button>
+              )}
+            </CardHeader>
+
+            <AnimatePresence mode="wait">
+              {editing ? (
+                <motion.div
+                  key="edit"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                >
+                  <CardContent className="p-6 space-y-6">
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <SliderField
+                        label="Stress Level"
+                        value={stressLevel}
+                        onChange={setStressLevel}
+                        min={1}
+                        max={10}
+                        step={1}
+                        formatValue={(v) => `${v}/10`}
+                        colorClass="accent-secondary"
+                      />
+                      <SliderField
+                        label="Mental Health Score"
+                        value={mentalHealthScore}
+                        onChange={setMentalHealthScore}
+                        min={1}
+                        max={100}
+                        step={1}
+                        formatValue={(v) => `${v}/100`}
+                        colorClass="accent-primary"
+                      />
+                      <SliderField
+                        label="Blood Pressure — Systolic"
+                        value={bloodPressureSystolic}
+                        onChange={setBloodPressureSystolic}
+                        min={90}
+                        max={180}
+                        step={1}
+                        formatValue={(v) => `${v} mmHg`}
+                        colorClass="accent-primary"
+                      />
+                      <SliderField
+                        label="Blood Pressure — Diastolic"
+                        value={bloodPressureDiastolic}
+                        onChange={setBloodPressureDiastolic}
+                        min={60}
+                        max={120}
+                        step={1}
+                        formatValue={(v) => `${v} mmHg`}
+                        colorClass="accent-primary"
+                      />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <Button
+                        onClick={handleSave}
+                        disabled={updateWellness.isPending}
+                        className="rounded-xl h-10 px-6 gap-2"
+                      >
+                        <Check className="w-4 h-4" />
+                        {updateWellness.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setEditing(false)}
+                        disabled={updateWellness.isPending}
+                        className="rounded-xl h-10 px-5 gap-2"
+                      >
+                        <X className="w-4 h-4" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </CardContent>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="idle"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <CardContent className="p-6">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      {[
+                        { label: "Stress Level", value: dashboard?.stressLevel ? `${dashboard.stressLevel}/10` : "--" },
+                        { label: "Mental Health", value: dashboard?.mentalHealthScore ? `${dashboard.mentalHealthScore}/100` : "--" },
+                        { label: "Systolic BP", value: dashboard?.bloodPressureSystolic ? `${dashboard.bloodPressureSystolic} mmHg` : "--" },
+                        { label: "Diastolic BP", value: dashboard?.bloodPressureDiastolic ? `${dashboard.bloodPressureDiastolic} mmHg` : "--" },
+                      ].map(item => (
+                        <div key={item.label} className="bg-muted/30 rounded-2xl p-4 border border-border/50 space-y-1">
+                          <p className="text-xs text-muted-foreground">{item.label}</p>
+                          {dashboardLoading ? (
+                            <Skeleton className="h-7 w-16" />
+                          ) : (
+                            <p className="text-xl font-semibold text-foreground">{item.value}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Card>
+        </motion.div>
+
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card className="lg:col-span-2 border-border/50 shadow-sm rounded-3xl overflow-hidden bg-card">
             <CardHeader className="bg-muted/20 pb-4 border-b border-border/50">
@@ -96,7 +260,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-foreground">{item.description}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</p>
                       </div>
                     </div>
                   ))}
@@ -128,6 +292,40 @@ export default function DashboardPage() {
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+function SliderField({ label, value, onChange, min, max, step, formatValue }: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step: number;
+  formatValue: (v: number) => string;
+  colorClass?: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-foreground">{label}</label>
+        <span className="text-sm font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+          {formatValue(value)}
+        </span>
+      </div>
+      <Slider
+        min={min}
+        max={max}
+        step={step}
+        value={[value]}
+        onValueChange={([v]) => onChange(v)}
+        className="w-full"
+      />
+      <div className="flex justify-between text-xs text-muted-foreground/70">
+        <span>{min}</span>
+        <span>{max}</span>
+      </div>
+    </div>
   );
 }
 

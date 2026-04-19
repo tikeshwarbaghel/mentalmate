@@ -126,4 +126,9 @@ router.post("/chat", requireAuth, async (req: any, res): Promise<void> => {
   });
 });
 
+router.delete("/chat", requireAuth, async (req: any, res): Promise<void> => {
+  await db.delete(chatMessagesTable).where(eq(chatMessagesTable.userId, req.userId));
+  res.json({ success: true });
+});
+
 export default router;

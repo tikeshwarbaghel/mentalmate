@@ -1,0 +1,31 @@
+Please fix and improve my MentalMate AI-powered mental health companion web app.
+
+Issues to fix
+In the chatbot, after the bot gives a response, it shows the user’s text message again. Remove this duplicate user message and make sure each message appears only once. Duplicate chat messages are commonly caused by repeated UI updates or duplicated message IDs, so the chat flow should render each message exactly once.
+
+The chatbot displays an emergency message, but it does not disappear or reset properly. Make the emergency alert temporary, dismissible, or visible only when a crisis-related message is detected. Safety messaging in mental health chat tools should be shown clearly when needed, but it should not remain stuck in the interface after the triggering state is gone.
+
+Add a New Chat section/button so the user can start a fresh conversation and clear the previous chat history.
+
+When the user adds or updates stress, it is not updating on the dashboard page. Fix the data flow so the stress value is saved and reflected on the dashboard immediately after submission. Form and dashboard sync problems are often caused by asynchronous state updates or disconnected data bindings.
+
+The mental health update section is also not updating. Make sure newly submitted mental health data is stored correctly and displayed in the dashboard or analysis section in real time.
+
+In the symptom tracker section, it is not accepting symptoms. Fix the input so the user can enter symptoms properly and submit them for analysis.
+
+Symptom analysis improvement
+Make the symptom tracker accept user-entered symptoms and analyze them in a basic supportive way.
+
+After symptom analysis, the app should provide guidance such as:
+
+Meditation suggestions
+
+Breathing exercises
+
+Light physical exercise
+
+Stress-relief or calming tips
+
+If the entered symptoms appear serious or risky, the app should suggest consulting a doctor or mental health professional instead of only giving self-help advice. Symptom checker tools commonly guide users toward urgency levels and appropriate care type rather than claiming a final diagnosis.
+
+Add a disclaimer that symptom analysis is only for guidance and not a confirmed medical diagnosis. Symptom-checking apps typically frame results as preliminary assessment and recommend professional care when risk is elevated

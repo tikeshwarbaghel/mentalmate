@@ -1,15 +1,24 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: MENTALMATE API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: mood
+    description: Mood logging operations
+  - name: chat
+    description: AI chat operations
+  - name: wellness
+    description: Wellness data operations
+  - name: doctors
+    description: Doctor recommendations
+  - name: symptoms
+    description: Symptom prediction
 paths:
   /healthz:
     get:
@@ -24,6 +33,178 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /mood:
+    get:
+      operationId: getMoodLogs
+      tags: [mood]
+      summary: Get mood logs for current user
+      responses:
+        "200":
+          description: List of mood logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MoodLog"
+    post:
+      operationId: createMoodLog
+      tags: [mood]
+      summary: Log today's mood
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMoodLog"
+      responses:
+        "201":
+          description: Mood logged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoodLog"
+
+  /mood/today:
+    get:
+      operationId: getTodayMood
+      tags: [mood]
+      summary: Get today's mood log
+      responses:
+        "200":
+          description: Today's mood log
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoodLog"
+        "404":
+          description: No mood logged today
+
+  /mood/weekly:
+    get:
+      operationId: getWeeklyMoodSummary
+      tags: [mood]
+      summary: Get weekly mood trends and insights
+      responses:
+        "200":
+          description: Weekly mood summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyMoodSummary"
+
+  /chat:
+    get:
+      operationId: getChatHistory
+      tags: [chat]
+      summary: Get chat message history
+      responses:
+        "200":
+          description: Chat history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a message to the AI companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendChatMessage"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+
+  /wellness:
+    get:
+      operationId: getWellnessDashboard
+      tags: [wellness]
+      summary: Get user wellness dashboard summary
+      responses:
+        "200":
+          description: Wellness dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WellnessDashboard"
+    put:
+      operationId: updateWellnessData
+      tags: [wellness]
+      summary: Update wellness metrics (stress level, blood pressure)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWellnessData"
+      responses:
+        "200":
+          description: Updated wellness data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WellnessDashboard"
+
+  /wellness/activity:
+    get:
+      operationId: getRecentActivity
+      tags: [wellness]
+      summary: Get recent wellness activity feed
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  /doctors:
+    get:
+      operationId: getDoctors
+      tags: [doctors]
+      summary: Get list of recommended mental health professionals
+      responses:
+        "200":
+          description: List of doctors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Doctor"
+
+  /symptoms/predict:
+    post:
+      operationId: predictCondition
+      tags: [symptoms]
+      summary: Get possible condition based on symptoms (informational only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SymptomInput"
+      responses:
+        "200":
+          description: Predicted condition suggestions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConditionPrediction"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +215,280 @@ components:
       required:
         - status
 
+    MoodLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        mood:
+          type: string
+          enum: [happy, sad, stressed, anxious, calm, tired]
+        note:
+          type: ["string", "null"]
+        stressLevel:
+          type: ["integer", "null"]
+        date:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - mood
+        - date
+        - createdAt
+
+    CreateMoodLog:
+      type: object
+      properties:
+        mood:
+          type: string
+          enum: [happy, sad, stressed, anxious, calm, tired]
+        note:
+          type: ["string", "null"]
+        stressLevel:
+          type: ["integer", "null"]
+      required:
+        - mood
+
+    WeeklyMoodSummary:
+      type: object
+      properties:
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayMoodData"
+        dominantMood:
+          type: string
+        averageStress:
+          type: ["number", "null"]
+        insight:
+          type: string
+        moodCounts:
+          $ref: "#/components/schemas/MoodCounts"
+      required:
+        - days
+        - dominantMood
+        - insight
+        - moodCounts
+
+    DayMoodData:
+      type: object
+      properties:
+        date:
+          type: string
+        day:
+          type: string
+        mood:
+          type: ["string", "null"]
+        stressLevel:
+          type: ["integer", "null"]
+      required:
+        - date
+        - day
+
+    MoodCounts:
+      type: object
+      properties:
+        happy:
+          type: integer
+        sad:
+          type: integer
+        stressed:
+          type: integer
+        anxious:
+          type: integer
+        calm:
+          type: integer
+        tired:
+          type: integer
+      required:
+        - happy
+        - sad
+        - stressed
+        - anxious
+        - calm
+        - tired
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        isCrisis:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - role
+        - content
+        - isCrisis
+        - createdAt
+
+    SendChatMessage:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    WellnessDashboard:
+      type: object
+      properties:
+        userId:
+          type: string
+        stressLevel:
+          type: ["integer", "null"]
+        bloodPressureSystolic:
+          type: ["integer", "null"]
+        bloodPressureDiastolic:
+          type: ["integer", "null"]
+        mentalHealthScore:
+          type: ["integer", "null"]
+        lastUpdated:
+          type: ["string", "null"]
+        streakDays:
+          type: integer
+        totalMoodLogs:
+          type: integer
+        totalChatSessions:
+          type: integer
+      required:
+        - userId
+        - streakDays
+        - totalMoodLogs
+        - totalChatSessions
+
+    UpdateWellnessData:
+      type: object
+      properties:
+        stressLevel:
+          type: ["integer", "null"]
+        bloodPressureSystolic:
+          type: ["integer", "null"]
+        bloodPressureDiastolic:
+          type: ["integer", "null"]
+        mentalHealthScore:
+          type: ["integer", "null"]
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [mood_logged, chat_session, wellness_updated, milestone]
+        description:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - type
+        - description
+        - createdAt
+
+    Doctor:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        specialization:
+          type: string
+        rating:
+          type: number
+        reviewCount:
+          type: integer
+        availability:
+          type: string
+        location:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        bio:
+          type: string
+        acceptingPatients:
+          type: boolean
+      required:
+        - id
+        - name
+        - specialization
+        - rating
+        - reviewCount
+        - availability
+        - location
+        - phone
+        - email
+        - bio
+        - acceptingPatients
+
+    SymptomInput:
+      type: object
+      properties:
+        symptoms:
+          type: array
+          items:
+            type: string
+        duration:
+          type: string
+        severity:
+          type: string
+          enum: [mild, moderate, severe]
+      required:
+        - symptoms
+        - severity
+
+    ConditionPrediction:
+      type: object
+      properties:
+        disclaimer:
+          type: string
+        conditions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PredictedCondition"
+        recommendations:
+          type: array
+          items:
+            type: string
+        seekHelpImmediately:
+          type: boolean
+      required:
+        - disclaimer
+        - conditions
+        - recommendations
+        - seekHelpImmediately
+
+    PredictedCondition:
+      type: object
+      properties:
+        name:
+          type: string
+        likelihood:
+          type: string
+          enum: [low, moderate, high]
+        description:
+          type: string
+      required:
+        - name
+        - likelihood
+        - description

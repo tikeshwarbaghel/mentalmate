@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "MENTALMATE"
+version = "1.0.0"
+id = "artifacts/mentalmate"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21553
+
+[services.development]
+run = "pnpm --filter @workspace/mentalmate run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mentalmate", "run", "build" ]
+publicDir = "artifacts/mentalmate/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21553"
+BASE_PATH = "/"

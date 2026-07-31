@@ -250,7 +250,7 @@ export default function DashboardPage() {
                 </div>
               ) : activity?.length ? (
                 <div className="divide-y divide-border/50">
-                  {activity.slice(0, 5).map((item) => (
+                  {(Array.isArray(activity) ? activity : []).slice(0, 5).map((item) => (
                     <div key={item.id} className="p-4 flex items-start gap-4 hover:bg-muted/30 transition-colors">
                       <div className="mt-1">
                         {item.type === "mood_logged" && <Heart className="w-5 h-5 text-primary" />}
@@ -353,3 +353,4 @@ function StatCard({ title, value, icon, description, loading, delay }: any) {
     </motion.div>
   );
 }
+

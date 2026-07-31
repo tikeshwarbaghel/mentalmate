@@ -102,3 +102,4 @@ function FeatureCard({ icon, title, description, delay }: { icon: React.ReactNod
     </motion.div>
   );
 }
+

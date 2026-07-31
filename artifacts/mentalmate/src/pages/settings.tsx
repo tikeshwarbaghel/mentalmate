@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { LogOut, User as UserIcon, Bell, Shield, Download, Trash2 } from "lucide-react";
+import { LogOut, User as UserIcon, Shield, Download, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
@@ -12,11 +12,41 @@ export default function SettingsPage() {
   const { signOut } = useClerk();
   const { toast } = useToast();
 
-  const handleExport = () => {
-    toast({
-      title: "Export Started",
-      description: "We are preparing your data. A download link will be emailed to you shortly.",
-    });
+  const handleExport = async () => {
+    try {
+      toast({
+        title: "Preparing Export...",
+        description: "Please wait while we gather your data.",
+      });
+
+      const response = await fetch("http://localhost:3001/api/export-data", {
+        credentials: "include",
+      });
+
+      if (!response.ok) throw new Error("Failed to export");
+
+      const data = await response.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `mentalmate-export-${new Date().toISOString().split("T")[0]}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Successful",
+        description: "Your data has been downloaded successfully.",
+      });
+    } catch {
+      toast({
+        title: "Export Failed",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDelete = () => {

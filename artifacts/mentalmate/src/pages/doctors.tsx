@@ -65,7 +65,7 @@ export default function DoctorsPage() {
                   <CardHeader className="bg-muted/10 pb-4 pt-6 px-6">
                     <div className="flex justify-between items-start mb-4">
                       <Avatar className="w-20 h-20 ring-4 ring-background shadow-sm">
-                        <AvatarImage src={doctor.imageUrl || ""} alt={doctor.name} className="object-cover" />
+                        <AvatarImage src={`https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(doctor.name)}&backgroundColor=c0aede`} alt={doctor.name} className="object-cover" />
                         <AvatarFallback className="bg-primary/10 text-primary text-xl font-medium">
                           {doctor.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                         </AvatarFallback>
@@ -128,3 +128,4 @@ export default function DoctorsPage() {
     </AppLayout>
   );
 }
+

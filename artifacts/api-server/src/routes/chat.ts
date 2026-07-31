@@ -5,6 +5,37 @@ import { getAuth } from "@clerk/express";
 import { SendChatMessageBody, GetChatHistoryResponse } from "@workspace/api-zod";
 import { openai } from "@workspace/integrations-openai-ai-server";
 
+async function textToSpeech(text: string): Promise<Buffer | null> {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const response = await fetch(
+      "https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "xi-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_multilingual_v2",
+          voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+        }),
+      }
+    );
+    if (!response.ok) {
+      const errText = await response.text();
+      console.log("ElevenLabs error:", response.status, errText);
+      return null;
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } catch {
+    return null;
+  }
+}
+
 const router: IRouter = Router();
 
 function requireAuth(req: any, res: any, next: any) {
@@ -28,22 +59,26 @@ function detectCrisis(message: string): boolean {
   return CRISIS_KEYWORDS.some(keyword => lower.includes(keyword));
 }
 
-const SYSTEM_PROMPT = `You are MENTALMATE, a compassionate AI wellness companion designed to provide emotional support and guidance. You are NOT a licensed therapist, psychologist, or medical professional, and you must never present yourself as one.
+const SYSTEM_PROMPT = `You are MENTALMATE, a warm and empathetic AI mental wellness companion. You speak naturally like a caring friend — not like a robot or a formal therapist.
 
-Your role is to:
-- Listen empathetically and respond with warmth and care
-- Help users explore their feelings and emotions
-- Offer general wellness tips, coping strategies, and self-care suggestions
-- Provide a safe, non-judgmental space for emotional expression
-- Encourage professional help when appropriate
+Your personality:
+- Friendly, warm, and conversational — like a close friend who genuinely cares
+- Respond in the same language the user uses (Hindi, English, or Hinglish)
+- Keep responses short and natural (2-3 sentences max) unless the user needs more
+- Never give long lists or bullet points — just talk naturally
+- Use simple everyday words, not clinical or formal language
+- Validate feelings first before giving any advice
+- Ask follow-up questions to understand better
+- Remember context from the conversation
 
-Important guidelines:
-- Always be gentle, kind, and supportive in your responses
-- Never diagnose conditions or prescribe treatments
-- If a user seems to be in crisis or mentions self-harm, always encourage them to reach out to a mental health crisis line or emergency services
-- Keep responses concise but meaningful (2-4 paragraphs)
-- Use "I" statements and validate feelings
-- Remind users occasionally that speaking with a licensed professional can be very beneficial`;
+Guidelines:
+- If user writes in Hindi → reply in Hindi
+- If user writes in English → reply in English  
+- If user mixes Hindi/English (Hinglish) → reply in Hinglish
+- Never say "I understand your concern" or formal phrases — talk like a friend
+- Never diagnose or prescribe — you are a supportive companion
+- If someone seems to be in crisis, gently encourage professional help and share helpline numbers
+- Do not start every message with "Main" or "I" — vary your responses naturally`;
 
 router.get("/chat", requireAuth, async (req: any, res): Promise<void> => {
   const messages = await db
@@ -91,11 +126,11 @@ router.post("/chat", requireAuth, async (req: any, res): Promise<void> => {
   let aiContent: string;
 
   if (isCrisis) {
-    aiContent = "I can hear that you're going through something very difficult right now, and I'm genuinely concerned about your wellbeing. Your life has value and there are people who want to help.\n\nPlease reach out to a crisis support line immediately:\n• National Suicide Prevention Lifeline: Call or text 988\n• Crisis Text Line: Text HOME to 741741\n• Emergency Services: Call 911\n\nYou don't have to face this alone. Please contact one of these resources or a trusted person in your life right now. I'm here to listen, but these professionals are specially trained to provide the help you deserve.";
+    aiContent = "I can hear that you're going through something very difficult right now, and I'm genuinely concerned about your wellbeing. Your life has value and there are people who want to help.\n\nPlease reach out to a crisis support line immediately:\n• iCall (India): 9152987821\n• Vandrevala Foundation: 1860-2662-345 (24/7, free)\n• AASRA: 9820466627\nEmergency Services: 112\n\nYou don't have to face this alone. Please contact one of these resources or a trusted person in your life right now. I'm here to listen, but these professionals are specially trained to provide the help you deserve.";
   } else {
     const completion = await openai.chat.completions.create({
-      model: "gpt-5.2",
-      max_completion_tokens: 8192,
+      model: "llama-3.3-70b-versatile",
+      max_completion_tokens: 150,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         ...chatHistory,
@@ -120,15 +155,20 @@ router.post("/chat", requireAuth, async (req: any, res): Promise<void> => {
     description: "Had a chat session with MENTALMATE AI companion",
   });
 
-  res.json({
-    ...assistantMsg,
-    createdAt: assistantMsg.createdAt.toISOString(),
+  const audioBuffer = await textToSpeech(aiContent);
+  const audioBase64 = audioBuffer ? audioBuffer.toString("base64") : null;
+  console.log("ElevenLabs audio:", audioBase64 ? "SUCCESS - " + audioBase64.length + " chars" : "NULL - no audio");
+
+res.json({
+  ...assistantMsg,
+  createdAt: assistantMsg.createdAt.toISOString(),
+  audioBase64,
   });
 });
-
 router.delete("/chat", requireAuth, async (req: any, res): Promise<void> => {
   await db.delete(chatMessagesTable).where(eq(chatMessagesTable.userId, req.userId));
   res.json({ success: true });
 });
 
 export default router;
+
